@@ -1,10 +1,10 @@
-# OGGY-VC-USERBOT - RENDER FIXED VERSION 😈🔥
-# CHUMT KA PYASA - EVENT LOOP FIX + TGCrypto SUPPORT
+# OGGY-VC-USERBOT - py-tgcalls==2.2.1 VERSION 😈🔥
+# CHUMT KA PYASA - FULLY FIXED
 
 # ============= EVENT LOOP FIX (PEHLE IMPORT) =============
 import asyncio
 import uvloop
-uvloop.install()  # CRITICAL: Yeh pehle run hona chahiye
+uvloop.install()
 
 import os
 import re
@@ -13,17 +13,21 @@ from datetime import datetime
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.enums import ChatType, ChatMemberStatus
+
+# py-tgcalls==2.2.1 imports
 from pytgcalls import PyTgCalls
 from pytgcalls.types import AudioQuality, Stream
 from pytgcalls.types.input_stream import AudioPiped, AudioRaw
+from pytgcalls.exceptions import NoActiveGroupCall
+
 import yt_dlp
 from youtubesearchpython import VideosSearch
 
 # ============= CONFIG =============
-SESSION_FILE = "ELUMTER_COPY_userbot"  # Session file name
-API_ID = 38712417  # Apna API ID
-API_HASH = "4b583e8882508b7db133f8502b7b105f"  # Apna API Hash
-PLAYLIST_FILE = "playlist.json"  # RC saved playlist
+SESSION_FILE = "ELUMTER_COPY_userbot"
+API_ID = 38712417
+API_HASH = "4b583e8882508b7db133f8502b7b105f"
+PLAYLIST_FILE = "playlist.json"
 
 # ============= INIT =============
 app = Client(
@@ -35,7 +39,7 @@ app = Client(
 call = PyTgCalls(app)
 queue = []
 current_playing = None
-saved_rc = {}  # {rc_name: url}
+saved_rc = {}
 
 # Load saved RC
 if os.path.exists(PLAYLIST_FILE):
@@ -50,11 +54,9 @@ def save_rc():
 async def get_audio_url(query):
     """YouTube search aur direct URL get karo"""
     try:
-        # Agar direct URL hai toh
         if query.startswith(('http://', 'https://')):
             return query
             
-        # Search karo
         search = VideosSearch(query, limit=1)
         result = await search.next()
         if result and result['result']:
@@ -90,37 +92,36 @@ async def get_stream_url(url):
 
 @app.on_message(filters.command("joinvc") & filters.me)
 async def join_vc(client: Client, message: Message):
-    """.joinvc group_id - Voice chat mein join karo"""
     try:
         args = message.text.split()
         if len(args) < 2:
-            await message.edit("🤡 Usage: `.joinvc group_id` ya channel_id")
+            await message.edit("🤡 Usage: `.joinvc group_id`")
             return
             
         chat_id = int(args[1]) if args[1].isdigit() else args[1]
         
-        # Check karo chat exists
         try:
             chat = await client.get_chat(chat_id)
         except:
-            await message.edit("❌ Chat nahi mila! ID sahi daal be.")
+            await message.edit("❌ Chat nahi mila!")
             return
-            
-        # Join VC
+        
+        # py-tgcalls 2.2.1 method
         await call.join_group_call(
             chat_id,
-            AudioPiped("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"),  # Temp stream
+            AudioPiped("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"),
             AudioQuality.MEDIUM
         )
         
         await message.edit(f"✅ VC join kar liya `{chat.title if hasattr(chat, 'title') else chat_id}` 😈")
         
+    except NoActiveGroupCall:
+        await message.edit("❌ Group call active nahi hai! Pehle VC start karo 😡")
     except Exception as e:
         await message.edit(f"❌ Error: `{str(e)}` 😭")
 
-@app.on_message(filters.command("levevc") & filters.me)
+@app.on_message(filters.command("leavevc") & filters.me)
 async def leave_vc(client: Client, message: Message):
-    """.levevc - VC chhod do"""
     try:
         args = message.text.split()
         chat_id = message.chat.id
@@ -131,7 +132,6 @@ async def leave_vc(client: Client, message: Message):
         await call.leave_group_call(chat_id)
         await message.edit("✅ VC chhod diya 🚪😈")
         
-        # Queue clear
         global queue, current_playing
         queue.clear()
         current_playing = None
@@ -141,33 +141,33 @@ async def leave_vc(client: Client, message: Message):
 
 @app.on_message(filters.command("play") & filters.me)
 async def play_music(client: Client, message: Message):
-    """.play query - VC mein gaana bajao"""
     try:
         args = message.text.split(maxsplit=1)
         if len(args) < 2:
-            await message.edit("🤡 Usage: `.play song_name ya YouTube URL`")
+            await message.edit("🤡 Usage: `.play song_name ya URL`")
             return
             
         query = args[1]
         await message.edit("🔍 Dhoond raha hoon... 🕵️")
         
-        # URL get karo
-        url = await get_audio_url(query)
+        # Check if RC hai
+        if query in saved_rc:
+            url = saved_rc[query]
+        else:
+            url = await get_audio_url(query)
+            
         if not url:
-            await message.edit("❌ Kuch nahi mila! Correct query daal 😡")
+            await message.edit("❌ Kuch nahi mila! 😡")
             return
             
-        # Stream URL get karo
         stream_url = await get_stream_url(url)
         if not stream_url:
-            await message.edit("❌ Stream nahi mila! Kuch aur try kar 😭")
+            await message.edit("❌ Stream nahi mila! 😭")
             return
         
-        # Current playing check
         global current_playing, queue
         
         if current_playing is None:
-            # Play karo
             await call.change_stream(
                 message.chat.id,
                 AudioPiped(stream_url)
@@ -175,7 +175,6 @@ async def play_music(client: Client, message: Message):
             current_playing = query
             await message.edit(f"▶️ **Ab baja raha hoon:** `{query}`\n🎵 CHUMT KA GANA 😈🔥")
         else:
-            # Queue mein daalo
             queue.append({
                 'query': query,
                 'url': url,
@@ -188,13 +187,11 @@ async def play_music(client: Client, message: Message):
 
 @app.on_message(filters.command("show") & filters.me)
 async def show_rc(client: Client, message: Message):
-    """.show - Saare saved RC dikhao"""
     if not saved_rc:
-        await message.edit("📭 Koi RC save nahi hai! `.play rc_name` karke save kar 😭")
+        await message.edit("📭 Koi RC save nahi hai! 😭")
         return
         
-    text = "📋 **SAVED RC LIST**\n"
-    text += "═══*\n"
+    text = "📋 **SAVED RC LIST**\n═══*\n"
     for i, (name, url) in enumerate(saved_rc.items(), 1):
         text += f"{i}. `{name}` → {url[:50]}...\n"
     
@@ -202,7 +199,6 @@ async def show_rc(client: Client, message: Message):
 
 @app.on_message(filters.command("addrc") & filters.me)
 async def add_rc(client: Client, message: Message):
-    """.addrc rc_name url - RC save karo"""
     try:
         args = message.text.split(maxsplit=2)
         if len(args) < 3:
@@ -212,22 +208,20 @@ async def add_rc(client: Client, message: Message):
         rc_name = args[1]
         url = args[2]
         
-        # Validate URL
         if not url.startswith(('http://', 'https://')):
-            await message.edit("❌ Sahi URL daal! YouTube link daal 😡")
+            await message.edit("❌ Sahi URL daal! 😡")
             return
             
         saved_rc[rc_name] = url
         save_rc()
         
-        await message.edit(f"✅ RC `{rc_name}` save kar diya! Ab `.play {rc_name}` se baja 😈")
+        await message.edit(f"✅ RC `{rc_name}` save kar diya! 😈")
         
     except Exception as e:
         await message.edit(f"❌ Error: `{str(e)}`")
 
 @app.on_message(filters.command("delrc") & filters.me)
 async def del_rc(client: Client, message: Message):
-    """.delrc rc_name - RC delete karo"""
     try:
         args = message.text.split()
         if len(args) < 2:
@@ -240,18 +234,17 @@ async def del_rc(client: Client, message: Message):
             save_rc()
             await message.edit(f"✅ RC `{rc_name}` delete kar diya! 🗑️")
         else:
-            await message.edit(f"❌ RC `{rc_name}` exist nahi karta! `.show` dekh 😡")
+            await message.edit(f"❌ RC `{rc_name}` exist nahi karta! 😡")
             
     except Exception as e:
         await message.edit(f"❌ Error: `{str(e)}`")
 
 @app.on_message(filters.command("skip") & filters.me)
 async def skip_song(client: Client, message: Message):
-    """.skip - Next song chalao queue se"""
     global queue, current_playing
     
     if not queue:
-        await message.edit("📭 Queue khaali hai! Pehle kuch daal 😭")
+        await message.edit("📭 Queue khaali hai! 😭")
         return
         
     next_song = queue.pop(0)
@@ -268,7 +261,6 @@ async def skip_song(client: Client, message: Message):
 
 @app.on_message(filters.command("pause") & filters.me)
 async def pause_vc(client: Client, message: Message):
-    """.pause - VC pause karo"""
     try:
         await call.pause_stream(message.chat.id)
         await message.edit("⏸️ Pause kar diya! `.resume` se chalao 🥀")
@@ -277,7 +269,6 @@ async def pause_vc(client: Client, message: Message):
 
 @app.on_message(filters.command("resume") & filters.me)
 async def resume_vc(client: Client, message: Message):
-    """.resume - VC resume karo"""
     try:
         await call.resume_stream(message.chat.id)
         await message.edit("▶️ Resume kar diya! CHUMT KA GANA 😈🔥")
@@ -286,27 +277,44 @@ async def resume_vc(client: Client, message: Message):
 
 @app.on_message(filters.command("queue") & filters.me)
 async def show_queue(client: Client, message: Message):
-    """.queue - Queue dikhao"""
     if not queue:
         await message.edit("📭 Queue khaali hai!")
         return
         
-    text = "📋 **QUEUE LIST**\n"
-    text += "═══*\n"
+    text = "📋 **QUEUE LIST**\n═══*\n"
     for i, song in enumerate(queue, 1):
         text += f"{i}. `{song['query']}`\n"
     
     await message.edit(text)
 
-# ============= RUN (FIXED) =============
+@app.on_message(filters.command("vcinfo") & filters.me)
+async def vc_info(client: Client, message: Message):
+    """VC status check"""
+    try:
+        # Current call status
+        status = "✅ Active" if current_playing else "⏸️ Inactive"
+        queue_count = len(queue)
+        
+        text = f"**🎵 VC STATUS**\n═══*\n"
+        text += f"• Current: `{current_playing or 'Nothing'}`\n"
+        text += f"• Queue: `{queue_count}` songs\n"
+        text += f"• Status: {status}\n"
+        text += f"• RC Saved: `{len(saved_rc)}`"
+        
+        await message.edit(text)
+    except Exception as e:
+        await message.edit(f"❌ Error: `{str(e)}`")
+
+# ============= RUN =============
 if __name__ == "__main__":
     print("🔥 OGGY-VC-USERBOT STARTING...")
     print("😈 CHUMT KA PYASA ACTIVATED!")
+    print(f"📦 py-tgcalls version: 2.2.1")
     
     # PyTgCalls start
     call.start()
     
-    # EVENT LOOP FIX KE SAATH RUN
+    # RUN
     loop = asyncio.get_event_loop()
     loop.run_until_complete(app.start())
     loop.run_forever()
