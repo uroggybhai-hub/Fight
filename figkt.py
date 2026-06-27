@@ -1,5 +1,5 @@
-# OGGY-VC-USERBOT - PYTHON 3.9 COMPATIBLE 😈🔥
-# CHUMT KA PYASA - WORKING VERSION
+# OGGY-VC-USERBOT - FINAL WORKING VERSION 😈🔥
+# CHUMT KA PYASA - VPS DEPLOYMENT READY
 
 import asyncio
 import sys
@@ -17,7 +17,6 @@ if sys.version_info >= (3, 10):
 
 from pyrogram import Client, filters
 from pyrogram.types import Message
-from pyrogram.enums import ChatType
 from pytgcalls import PyTgCalls
 from pytgcalls.types import AudioQuality
 from pytgcalls.types.input_stream import AudioPiped
@@ -40,8 +39,11 @@ saved_rc = {}
 
 # Load saved RC
 if os.path.exists(PLAYLIST_FILE):
-    with open(PLAYLIST_FILE, 'r') as f:
-        saved_rc = json.load(f)
+    try:
+        with open(PLAYLIST_FILE, 'r') as f:
+            saved_rc = json.load(f)
+    except:
+        saved_rc = {}
 
 # ==================== HELPERS ====================
 def save_rc():
@@ -53,10 +55,13 @@ async def get_audio_url(query):
     if query.startswith(('http://', 'https://')):
         return query
     
-    search = VideosSearch(query, limit=1)
-    result = await search.next()
-    if result and result['result']:
-        return f"https://youtube.com/watch?v={result['result'][0]['id']}"
+    try:
+        search = VideosSearch(query, limit=1)
+        result = await search.next()
+        if result and result.get('result'):
+            return f"https://youtube.com/watch?v={result['result'][0]['id']}"
+    except:
+        pass
     return None
 
 async def get_stream_url(url):
@@ -66,41 +71,23 @@ async def get_stream_url(url):
         'quiet': True,
         'no_warnings': True,
         'extractaudio': True,
+        'ignoreerrors': True,
     }
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            for f in info['formats']:
-                if f.get('acodec') != 'none' and f.get('vcodec') == 'none':
-                    return f['url']
-        return None
-    except Exception as e:
-        print(f"Stream error: {e}")
-        return None
-
-async def play_next(chat_id):
-    global queue, current_playing
-    
-    if not queue:
-        current_playing = None
-        return False
-    
-    next_song = queue.pop(0)
-    current_playing = next_song['query']
-    
-    try:
-        await call.change_stream(
-            chat_id,
-            AudioPiped(next_song['stream_url'])
-        )
-        return True
+            if info:
+                for f in info.get('formats', []):
+                    if f.get('acodec') != 'none' and f.get('vcodec') == 'none':
+                        return f['url']
     except:
-        return False
+        pass
+    return None
 
 # ==================== COMMANDS ====================
 
-@app.on_message(filters.command("start") & filters.me)
+@app.on_message(filters.command(["start", "help"]) & filters.me)
 async def start_cmd(client, message):
     await message.edit(
         "🔥 **OGGY-VC-USERBOT ACTIVATED**\n\n"
@@ -136,6 +123,13 @@ async def join_vc(client, message):
             return
         
         chat_id = int(args[1]) if args[1].isdigit() else args[1]
+        
+        # Check chat exists
+        try:
+            await client.get_chat(chat_id)
+        except:
+            await message.edit("❌ Chat not found! Check ID 😡")
+            return
         
         await call.join_group_call(
             chat_id,
@@ -267,6 +261,10 @@ async def add_rc(client, message):
             return
         
         name, url = args[1], args[2]
+        if not url.startswith(('http://', 'https://')):
+            await message.edit("❌ Valid URL daal! 😡")
+            return
+            
         saved_rc[name] = url
         save_rc()
         
@@ -310,11 +308,25 @@ async def del_rc(client, message):
 async def main():
     print("🔥 OGGY-VC-USERBOT STARTING...")
     print("😈 CHUMT KA PYASA ACTIVATED!")
+    print("📱 Telegram session starting...")
     
-    await call.start()
-    await app.start()
+    try:
+        await app.start()
+        print(f"✅ Logged in as: {(await app.get_me()).first_name}")
+    except Exception as e:
+        print(f"❌ Login failed: {e}")
+        return
     
-    print("✅ Bot is running! Use commands in Telegram.")
+    try:
+        await call.start()
+        print("✅ PyTgCalls started!")
+    except Exception as e:
+        print(f"❌ PyTgCalls error: {e}")
+        return
+    
+    print("\n🎵 Bot is running! Use commands in Telegram.")
+    print("Commands: .start, .joinvc, .play, .skip, .pause, .resume, .queue, .addrc, .show, .delrc")
+    
     await asyncio.Event().wait()
 
 if __name__ == "__main__":
@@ -322,6 +334,6 @@ if __name__ == "__main__":
         loop = asyncio.get_event_loop()
         loop.run_until_complete(main())
     except KeyboardInterrupt:
-        print("\n❌ Bot stopped!")
+        print("\n❌ Bot stopped by user!")
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ Fatal error: {e}")
