@@ -1,5 +1,5 @@
-# OGGY-VC-USERBOT - EXTREME DEBUG MODE 😈🔥
-# HAR COMMAND KA RESPONSE MILEGA
+# OGGY-VC-USERBOT - PEER ERROR FIXED 😈🔥
+# CHUMT KA PYASA - FINAL STABLE VERSION
 
 import asyncio
 import os
@@ -19,11 +19,17 @@ API_HASH = "4b583e8882508b7db133f8502b7b105f"
 SESSION = "ELUMTER_COPY_userbot"
 PLAYLIST_FILE = "playlist.json"
 
-# 🔥 APNI TELEGRAM USER ID DAAL (YEH @userinfobot se nikaal)
-OWNER_ID = 8477195695  # <-- BADAL YEH!
+# 🔥 TERI USER ID (Error se mili: 8477195695)
+OWNER_ID = 8477195695  # <-- TERI ID DAAL!
 
 # ==================== INIT ====================
-app = Client(SESSION, api_id=API_ID, api_hash=API_HASH)
+app = Client(
+    SESSION,
+    api_id=API_ID,
+    api_hash=API_HASH,
+    sleep_threshold=60,  # Network issues handle
+    no_updates=True  # 🔥 PEER ERROR FIX - Updates band karo
+)
 
 queue = []
 current_playing = None
@@ -104,30 +110,14 @@ async def play_audio(chat_id, stream_url):
     except Exception as e:
         print(f"Play error: {e}")
 
-# ==================== DEBUG OWNER CHECK ====================
-async def check_owner(message):
-    """Owner check with debug info"""
-    user_id = message.from_user.id
-    print(f"🔍 Checking owner: User={user_id}, Owner={OWNER_ID}, Match={user_id == OWNER_ID}")
-    
-    if user_id == OWNER_ID:
-        return True
-    
-    await message.reply(
-        f"❌ **You are not the owner!**\n\n"
-        f"Your ID: `{user_id}`\n"
-        f"Owner ID: `{OWNER_ID}`\n\n"
-        f"💡 Apni ID @userinfobot se nikaal kar owner ID update karo!"
-    )
-    return False
+# ==================== COMMANDS ====================
 
-# ==================== COMMANDS WITH FULL DEBUG ====================
-
-@app.on_message(filters.command(["start", "help"]))
+@app.on_message(filters.command(["start", "help"]) & filters.private)
 async def start_cmd(client, message):
-    print(f"📩 Command: start from {message.from_user.id}")
     try:
-        if not await check_owner(message):
+        user_id = message.from_user.id
+        if user_id != OWNER_ID:
+            await message.reply(f"❌ **Owner only!** Your ID: `{user_id}`")
             return
         
         await message.reply(
@@ -144,22 +134,21 @@ async def start_cmd(client, message):
             "`.delrc name` - Delete RC\n"
             "`.ping` - Check status\n"
             "`.debug` - Show debug info\n\n"
-            f"👑 Your ID: `{message.from_user.id}`\n"
-            f"👑 Owner ID: `{OWNER_ID}`\n\n"
+            f"👑 Owner ID: `{OWNER_ID}`\n"
             "😈 CHUMT KA PYASA ACTIVE!"
         )
-        print(f"✅ start command sent")
     except Exception as e:
-        print(f"❌ start error: {e}")
-        await message.reply(f"❌ **Error:** `{str(e)}`")
+        print(f"Start error: {e}")
 
-@app.on_message(filters.command("debug"))
+@app.on_message(filters.command("debug") & filters.private)
 async def debug_cmd(client, message):
-    print(f"📩 Command: debug from {message.from_user.id}")
     try:
         user_id = message.from_user.id
-        me = await app.get_me()
+        if user_id != OWNER_ID:
+            await message.reply(f"❌ **Owner only!** Your ID: `{user_id}`")
+            return
         
+        me = await app.get_me()
         await message.reply(
             f"🔍 **DEBUG INFO**\n\n"
             f"Your ID: `{user_id}`\n"
@@ -173,32 +162,32 @@ async def debug_cmd(client, message):
             f"FFmpeg: `{ffmpeg_process is not None}`\n"
             f"Python: `{sys.version}`"
         )
-        print(f"✅ debug command sent")
     except Exception as e:
-        print(f"❌ debug error: {e}")
-        await message.reply(f"❌ **Error:** `{str(e)}`")
+        print(f"Debug error: {e}")
+        await message.reply(f"❌ Error: `{str(e)}`")
 
-@app.on_message(filters.command("ping"))
+@app.on_message(filters.command("ping") & filters.private)
 async def ping_cmd(client, message):
-    print(f"📩 Command: ping from {message.from_user.id}")
     try:
-        if not await check_owner(message):
+        user_id = message.from_user.id
+        if user_id != OWNER_ID:
+            await message.reply(f"❌ **Owner only!**")
             return
+        
         start = datetime.now()
         await message.reply("🏓 Pinging...")
         end = datetime.now()
         ms = (end - start).microseconds / 1000
         await message.reply(f"🏓 **Pong!** `{ms:.2f}ms`")
-        print(f"✅ ping command sent")
     except Exception as e:
-        print(f"❌ ping error: {e}")
-        await message.reply(f"❌ **Error:** `{str(e)}`")
+        print(f"Ping error: {e}")
 
-@app.on_message(filters.command("joinvc"))
+@app.on_message(filters.command("joinvc") & filters.private)
 async def join_vc(client, message):
-    print(f"📩 Command: joinvc from {message.from_user.id}")
     try:
-        if not await check_owner(message):
+        user_id = message.from_user.id
+        if user_id != OWNER_ID:
+            await message.reply(f"❌ **Owner only!**")
             return
         
         args = message.text.split()
@@ -207,28 +196,19 @@ async def join_vc(client, message):
             return
         
         chat_id = int(args[1])
-        await message.reply(f"🔍 **Checking chat...** `{chat_id}`")
-        
-        try:
-            chat = await client.get_chat(chat_id)
-            await message.reply(f"✅ **Found chat:** `{chat.title if chat.title else chat_id}`")
-        except Exception as e:
-            await message.reply(f"❌ **Chat not found!** `{str(e)}`")
-            return
-        
-        await message.reply(f"🔊 **Joining voice chat...**")
+        await message.reply(f"🔍 **Joining VC...** `{chat_id}`")
         await client.join_chat(chat_id)
         await message.reply(f"✅ **VC Joined!** `{chat_id}` 😈")
-        print(f"✅ joinvc command sent")
     except Exception as e:
-        print(f"❌ joinvc error: {e}")
-        await message.reply(f"❌ **Error:** `{str(e)}`\n\n`{traceback.format_exc()}`")
+        print(f"Joinvc error: {e}")
+        await message.reply(f"❌ **Error:** `{str(e)}`")
 
-@app.on_message(filters.command("leavevc"))
+@app.on_message(filters.command("leavevc") & filters.private)
 async def leave_vc(client, message):
-    print(f"📩 Command: leavevc from {message.from_user.id}")
     try:
-        if not await check_owner(message):
+        user_id = message.from_user.id
+        if user_id != OWNER_ID:
+            await message.reply(f"❌ **Owner only!**")
             return
         
         args = message.text.split()
@@ -241,16 +221,16 @@ async def leave_vc(client, message):
         
         await client.leave_chat(chat_id)
         await message.reply(f"✅ **Left VC!** `{chat_id}` 🚪")
-        print(f"✅ leavevc command sent")
     except Exception as e:
-        print(f"❌ leavevc error: {e}")
+        print(f"Leavevc error: {e}")
         await message.reply(f"❌ **Error:** `{str(e)}`")
 
-@app.on_message(filters.command("play"))
+@app.on_message(filters.command("play") & filters.private)
 async def play_music(client, message):
-    print(f"📩 Command: play from {message.from_user.id}")
     try:
-        if not await check_owner(message):
+        user_id = message.from_user.id
+        if user_id != OWNER_ID:
+            await message.reply(f"❌ **Owner only!**")
             return
         
         args = message.text.split(maxsplit=1)
@@ -259,32 +239,21 @@ async def play_music(client, message):
             return
         
         query = args[1]
-        await message.reply(f"🔍 **Searching...** `{query}` 🕵️")
-        print(f"🔍 Searching: {query}")
+        await message.reply(f"🔍 **Searching...** `{query}`")
         
         if query in saved_rc:
             url = saved_rc[query]
-            await message.reply(f"📌 **Found in RC:** `{query}`")
         else:
             url = await get_audio_url(query)
-            if url:
-                await message.reply(f"📌 **Found on YouTube:** `{url[:50]}...`")
-            else:
-                await message.reply("❌ **No results found!**")
-                return
         
         if not url:
-            await message.reply("❌ **No URL found!**")
+            await message.reply("❌ **No results found!**")
             return
         
-        await message.reply(f"🎵 **Getting stream URL...**")
         stream_url = get_stream_url(url)
-        
         if not stream_url:
-            await message.reply("❌ **Stream unavailable!** 😭")
+            await message.reply("❌ **Stream unavailable!**")
             return
-        
-        await message.reply(f"✅ **Stream URL obtained!**")
         
         global current_playing, queue
         
@@ -295,18 +264,17 @@ async def play_music(client, message):
             await message.reply(f"▶️ **Now Playing:** `{query}` 😈🔥")
         else:
             queue.append({'query': query, 'stream_url': stream_url})
-            await message.reply(f"⏳ **Added to Queue:** `{query}` (Position: {len(queue)}) 🎶")
-            
-        print(f"✅ play command sent")
+            await message.reply(f"⏳ **Added to Queue:** `{query}` (Position: {len(queue)})")
     except Exception as e:
-        print(f"❌ play error: {e}")
-        await message.reply(f"❌ **Error:** `{str(e)}`\n\n`{traceback.format_exc()}`")
+        print(f"Play error: {e}")
+        await message.reply(f"❌ **Error:** `{str(e)}`")
 
-@app.on_message(filters.command("skip"))
+@app.on_message(filters.command("skip") & filters.private)
 async def skip_song(client, message):
-    print(f"📩 Command: skip from {message.from_user.id}")
     try:
-        if not await check_owner(message):
+        user_id = message.from_user.id
+        if user_id != OWNER_ID:
+            await message.reply(f"❌ **Owner only!**")
             return
         
         global queue, current_playing
@@ -319,24 +287,18 @@ async def skip_song(client, message):
         next_song = queue.pop(0)
         current_playing = next_song['query']
         
-        await message.reply(f"⏭️ **Skipping to:** `{next_song['query']}`")
-        
-        try:
-            await play_audio(message.chat.id, next_song['stream_url'])
-            await message.reply(f"⏭️ **Now Playing:** `{next_song['query']}` (Queue: {len(queue)})")
-        except Exception as e:
-            await message.reply(f"❌ **Playback error:** `{str(e)}`")
-            
-        print(f"✅ skip command sent")
+        await play_audio(message.chat.id, next_song['stream_url'])
+        await message.reply(f"⏭️ **Now Playing:** `{next_song['query']}` (Queue: {len(queue)})")
     except Exception as e:
-        print(f"❌ skip error: {e}")
+        print(f"Skip error: {e}")
         await message.reply(f"❌ **Error:** `{str(e)}`")
 
-@app.on_message(filters.command("stop"))
+@app.on_message(filters.command("stop") & filters.private)
 async def stop_music(client, message):
-    print(f"📩 Command: stop from {message.from_user.id}")
     try:
-        if not await check_owner(message):
+        user_id = message.from_user.id
+        if user_id != OWNER_ID:
+            await message.reply(f"❌ **Owner only!**")
             return
         
         stop_ffmpeg()
@@ -344,16 +306,16 @@ async def stop_music(client, message):
         current_playing = None
         queue.clear()
         await message.reply("⏹️ **Stopped!** 🛑")
-        print(f"✅ stop command sent")
     except Exception as e:
-        print(f"❌ stop error: {e}")
+        print(f"Stop error: {e}")
         await message.reply(f"❌ **Error:** `{str(e)}`")
 
-@app.on_message(filters.command("queue"))
+@app.on_message(filters.command("queue") & filters.private)
 async def show_queue(client, message):
-    print(f"📩 Command: queue from {message.from_user.id}")
     try:
-        if not await check_owner(message):
+        user_id = message.from_user.id
+        if user_id != OWNER_ID:
+            await message.reply(f"❌ **Owner only!**")
             return
         
         if not queue:
@@ -364,16 +326,16 @@ async def show_queue(client, message):
         for i, song in enumerate(queue, 1):
             text += f"{i}. `{song['query']}`\n"
         await message.reply(text)
-        print(f"✅ queue command sent")
     except Exception as e:
-        print(f"❌ queue error: {e}")
+        print(f"Queue error: {e}")
         await message.reply(f"❌ **Error:** `{str(e)}`")
 
-@app.on_message(filters.command("addrc"))
+@app.on_message(filters.command("addrc") & filters.private)
 async def add_rc(client, message):
-    print(f"📩 Command: addrc from {message.from_user.id}")
     try:
-        if not await check_owner(message):
+        user_id = message.from_user.id
+        if user_id != OWNER_ID:
+            await message.reply(f"❌ **Owner only!**")
             return
         
         args = message.text.split(maxsplit=2)
@@ -384,17 +346,17 @@ async def add_rc(client, message):
         name, url = args[1], args[2]
         saved_rc[name] = url
         save_rc()
-        await message.reply(f"✅ **RC Saved:** `{name}` 😈")
-        print(f"✅ addrc command sent")
+        await message.reply(f"✅ **RC Saved:** `{name}`")
     except Exception as e:
-        print(f"❌ addrc error: {e}")
+        print(f"Addrc error: {e}")
         await message.reply(f"❌ **Error:** `{str(e)}`")
 
-@app.on_message(filters.command("show"))
+@app.on_message(filters.command("show") & filters.private)
 async def show_rc(client, message):
-    print(f"📩 Command: show from {message.from_user.id}")
     try:
-        if not await check_owner(message):
+        user_id = message.from_user.id
+        if user_id != OWNER_ID:
+            await message.reply(f"❌ **Owner only!**")
             return
         
         if not saved_rc:
@@ -405,16 +367,16 @@ async def show_rc(client, message):
         for i, (name, url) in enumerate(saved_rc.items(), 1):
             text += f"{i}. `{name}` → {url[:40]}...\n"
         await message.reply(text)
-        print(f"✅ show command sent")
     except Exception as e:
-        print(f"❌ show error: {e}")
+        print(f"Show error: {e}")
         await message.reply(f"❌ **Error:** `{str(e)}`")
 
-@app.on_message(filters.command("delrc"))
+@app.on_message(filters.command("delrc") & filters.private)
 async def del_rc(client, message):
-    print(f"📩 Command: delrc from {message.from_user.id}")
     try:
-        if not await check_owner(message):
+        user_id = message.from_user.id
+        if user_id != OWNER_ID:
+            await message.reply(f"❌ **Owner only!**")
             return
         
         args = message.text.split()
@@ -426,23 +388,22 @@ async def del_rc(client, message):
         if name in saved_rc:
             del saved_rc[name]
             save_rc()
-            await message.reply(f"✅ **RC Deleted:** `{name}` 🗑️")
+            await message.reply(f"✅ **RC Deleted:** `{name}`")
         else:
             await message.reply(f"❌ `{name}` not found!")
-        print(f"✅ delrc command sent")
     except Exception as e:
-        print(f"❌ delrc error: {e}")
+        print(f"Delrc error: {e}")
         await message.reply(f"❌ **Error:** `{str(e)}`")
 
-# ==================== FALLBACK - KISI BHI COMMAND KA REPLY ====================
+# ==================== UNKNOWN COMMAND ====================
 @app.on_message(filters.text & filters.private)
 async def catch_all(client, message):
     if message.text and message.text.startswith('.'):
-        print(f"📩 Unknown command: {message.text} from {message.from_user.id}")
+        user_id = message.from_user.id
         await message.reply(
             f"❌ **Unknown command!**\n\n"
             f"Your command: `{message.text}`\n"
-            f"Your ID: `{message.from_user.id}`\n"
+            f"Your ID: `{user_id}`\n"
             f"Owner ID: `{OWNER_ID}`\n\n"
             f"Use `.start` to see all commands 😡"
         )
@@ -452,19 +413,20 @@ async def main():
     print("🔥 OGGY-VC-USERBOT STARTING...")
     print("😈 CHUMT KA PYASA ACTIVATED!")
     print(f"👑 Owner ID: {OWNER_ID}")
+    print("🛡️ PEER ERROR FIXED - no_updates=True")
     print("=" * 50)
-    print("📱 HAR COMMAND KA RESPONSE MILEGA")
-    print("📱 TERMINAL MEIN SAB LOG DIKHEGA")
-    print("=" * 50)
+    
+    # Purana session delete karo agar error ho
+    if os.path.exists(f"{SESSION}.session"):
+        print("📁 Session file found. If error persists, delete it.")
     
     await app.start()
     me = await app.get_me()
     print(f"✅ Logged in as: {me.first_name} (@{me.username})")
     print(f"📱 Bot User ID: {me.id}")
     print("\n🎵 Bot is running!")
+    print("📱 Send commands in PRIVATE chat only!")
     print("Commands: .start, .debug, .joinvc, .play, .skip, .stop, .queue, .addrc, .show, .delrc")
-    print("\n⚠️ Telegram mein koi bhi command bhejo - bot reply karega!")
-    print("⚠️ Agar reply nahi aata toh terminal mein errors dekho!")
     
     await asyncio.Event().wait()
 
