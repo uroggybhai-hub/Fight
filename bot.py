@@ -1,5 +1,5 @@
-# OGGY-VC-USERBOT - WITH OWNER ID SYSTEM 😈🔥
-# CHUMT KA PYASA - FIXED COMMANDS
+# OGGY-VC-USERBOT - FINAL FIXED VERSION 😈🔥
+# CHUMT KA PYASA - COMMANDS FIXED
 
 import asyncio
 import os
@@ -19,8 +19,8 @@ API_HASH = "4b583e8882508b7db133f8502b7b105f"
 SESSION = "ELUMTER_COPY_userbot"
 PLAYLIST_FILE = "playlist.json"
 
-# 🔥 APNI TELEGRAM USER ID DAAL (Integer)
-OWNER_ID = 8431832605  # <-- YAHAN APNI ID DAAL! (Integer, without quotes)
+# 🔥 APNI TELEGRAM USER ID DAAL
+OWNER_ID = 123456789  # <-- YAHAN APNI ID DAAL!
 
 # ==================== INIT ====================
 app = Client(SESSION, api_id=API_ID, api_hash=API_HASH)
@@ -29,7 +29,6 @@ queue = []
 current_playing = None
 saved_rc = {}
 ffmpeg_process = None
-current_chat_id = None
 
 if os.path.exists(PLAYLIST_FILE):
     with open(PLAYLIST_FILE, 'r') as f:
@@ -39,24 +38,17 @@ def save_rc():
     with open(PLAYLIST_FILE, 'w') as f:
         json.dump(saved_rc, f, indent=4)
 
-# ==================== OWNER FILTER ====================
-def owner_only(func):
-    """Sirf owner hi commands use kar sakta hai"""
-    async def wrapper(client, message):
-        if message.from_user.id != OWNER_ID:
-            await message.reply("❌ **CHUTIYA MAT BAN!** Tu owner nahi hai 😡")
-            return
-        return await func(client, message)
-    return wrapper
-
 # ==================== HELPERS ====================
 async def get_audio_url(query):
     if query.startswith(('http://', 'https://')):
         return query
-    search = VideosSearch(query, limit=1)
-    result = await search.next()
-    if result and result.get('result'):
-        return f"https://youtube.com/watch?v={result['result'][0]['id']}"
+    try:
+        search = VideosSearch(query, limit=1)
+        result = await search.next()
+        if result and result.get('result'):
+            return f"https://youtube.com/watch?v={result['result'][0]['id']}"
+    except Exception as e:
+        print(f"Search error: {e}")
     return None
 
 def get_stream_url(url):
@@ -64,14 +56,16 @@ def get_stream_url(url):
         'format': 'bestaudio/best',
         'quiet': True,
         'no_warnings': True,
+        'ignoreerrors': True,
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            return info['url']
+            if info:
+                return info.get('url')
     except Exception as e:
         print(f"Stream error: {e}")
-        return None
+    return None
 
 def stop_ffmpeg():
     global ffmpeg_process
@@ -84,10 +78,8 @@ def stop_ffmpeg():
             pass
 
 async def play_audio(chat_id, stream_url):
-    global ffmpeg_process, current_chat_id
-    
+    global ffmpeg_process
     stop_ffmpeg()
-    current_chat_id = chat_id
     
     cmd = [
         'ffmpeg',
@@ -107,17 +99,25 @@ async def play_audio(chat_id, stream_url):
         stderr=subprocess.PIPE
     )
     
-    await app.send_voice(
-        chat_id,
-        ffmpeg_process.stdout,
-        duration=0
-    )
+    try:
+        await app.send_voice(chat_id, ffmpeg_process.stdout, duration=0)
+    except Exception as e:
+        print(f"Play error: {e}")
 
-# ==================== COMMANDS (OWNER ONLY) ====================
+# ==================== OWNER CHECK ====================
+async def is_owner(message):
+    """Check if user is owner"""
+    if message.from_user.id == OWNER_ID:
+        return True
+    await message.reply("❌ **You are not the owner!** 😡")
+    return False
 
-@app.on_message(filters.command(["start", "help"]) & filters.private)
-@owner_only
+# ==================== COMMANDS (GROUP + PRIVATE) ====================
+
+@app.on_message(filters.command(["start", "help"]))
 async def start_cmd(client, message):
+    if not await is_owner(message):
+        return
     await message.reply(
         "🔥 **OGGY-VC-USERBOT ACTIVATED**\n\n"
         "**Commands:**\n"
@@ -126,8 +126,6 @@ async def start_cmd(client, message):
         "`.play query` - Play song\n"
         "`.skip` - Skip current\n"
         "`.stop` - Stop playing\n"
-        "`.pause` - Pause (FFmpeg)\n"
-        "`.resume` - Resume (FFmpeg)\n"
         "`.queue` - Show queue\n"
         "`.addrc name url` - Save RC\n"
         "`.show` - Show saved RC\n"
@@ -136,18 +134,20 @@ async def start_cmd(client, message):
         "😈 CHUMT KA PYASA ACTIVE!"
     )
 
-@app.on_message(filters.command("ping") & filters.private)
-@owner_only
+@app.on_message(filters.command("ping"))
 async def ping_cmd(client, message):
+    if not await is_owner(message):
+        return
     start = datetime.now()
     await message.reply("🏓 Pinging...")
     end = datetime.now()
     ms = (end - start).microseconds / 1000
-    await message.reply(f"🏓 **Pong!** `{ms:.2f}ms`\n😈 OGGY AI is alive!")
+    await message.reply(f"🏓 **Pong!** `{ms:.2f}ms`")
 
-@app.on_message(filters.command("joinvc") & filters.private)
-@owner_only
+@app.on_message(filters.command("joinvc"))
 async def join_vc(client, message):
+    if not await is_owner(message):
+        return
     try:
         args = message.text.split()
         if len(args) < 2:
@@ -156,10 +156,9 @@ async def join_vc(client, message):
         
         chat_id = int(args[1])
         
-        # Check chat exists
         try:
             chat = await client.get_chat(chat_id)
-            await message.reply(f"✅ **Joining VC...** `{chat.title}`")
+            await message.reply(f"✅ **Joining VC...** `{chat.title if chat.title else chat_id}`")
         except:
             await message.reply(f"❌ **Chat not found!** Check ID 😡")
             return
@@ -170,9 +169,10 @@ async def join_vc(client, message):
     except Exception as e:
         await message.reply(f"❌ **Error:** `{str(e)}`")
 
-@app.on_message(filters.command("leavevc") & filters.private)
-@owner_only
+@app.on_message(filters.command("leavevc"))
 async def leave_vc(client, message):
+    if not await is_owner(message):
+        return
     try:
         args = message.text.split()
         chat_id = int(args[1]) if len(args) > 1 else message.chat.id
@@ -188,9 +188,10 @@ async def leave_vc(client, message):
     except Exception as e:
         await message.reply(f"❌ **Error:** `{str(e)}`")
 
-@app.on_message(filters.command("play") & filters.private)
-@owner_only
+@app.on_message(filters.command("play"))
 async def play_music(client, message):
+    if not await is_owner(message):
+        return
     try:
         args = message.text.split(maxsplit=1)
         if len(args) < 2:
@@ -227,9 +228,10 @@ async def play_music(client, message):
     except Exception as e:
         await message.reply(f"❌ **Error:** `{str(e)}`")
 
-@app.on_message(filters.command("skip") & filters.private)
-@owner_only
+@app.on_message(filters.command("skip"))
 async def skip_song(client, message):
+    if not await is_owner(message):
+        return
     global queue, current_playing
     
     if not queue:
@@ -246,44 +248,20 @@ async def skip_song(client, message):
     except Exception as e:
         await message.reply(f"❌ **Error:** `{str(e)}`")
 
-@app.on_message(filters.command("stop") & filters.private)
-@owner_only
+@app.on_message(filters.command("stop"))
 async def stop_music(client, message):
+    if not await is_owner(message):
+        return
     stop_ffmpeg()
     global current_playing, queue
     current_playing = None
     queue.clear()
     await message.reply("⏹️ **Stopped!** 🛑")
 
-@app.on_message(filters.command("pause") & filters.private)
-@owner_only
-async def pause_music(client, message):
-    global ffmpeg_process
-    if ffmpeg_process:
-        try:
-            ffmpeg_process.send_signal(signal.SIGSTOP)
-            await message.reply("⏸️ **Paused!** `.resume` se chalao")
-        except:
-            await message.reply("❌ **Cannot pause!**")
-    else:
-        await message.reply("❌ **Nothing is playing!**")
-
-@app.on_message(filters.command("resume") & filters.private)
-@owner_only
-async def resume_music(client, message):
-    global ffmpeg_process
-    if ffmpeg_process:
-        try:
-            ffmpeg_process.send_signal(signal.SIGCONT)
-            await message.reply("▶️ **Resumed!** 😈🔥")
-        except:
-            await message.reply("❌ **Cannot resume!**")
-    else:
-        await message.reply("❌ **Nothing is paused!**")
-
-@app.on_message(filters.command("queue") & filters.private)
-@owner_only
+@app.on_message(filters.command("queue"))
 async def show_queue(client, message):
+    if not await is_owner(message):
+        return
     if not queue:
         await message.reply("📭 **Queue is empty!**")
         return
@@ -293,9 +271,10 @@ async def show_queue(client, message):
         text += f"{i}. `{song['query']}`\n"
     await message.reply(text)
 
-@app.on_message(filters.command("addrc") & filters.private)
-@owner_only
+@app.on_message(filters.command("addrc"))
 async def add_rc(client, message):
+    if not await is_owner(message):
+        return
     try:
         args = message.text.split(maxsplit=2)
         if len(args) < 3:
@@ -310,9 +289,10 @@ async def add_rc(client, message):
     except Exception as e:
         await message.reply(f"❌ **Error:** `{str(e)}`")
 
-@app.on_message(filters.command("show") & filters.private)
-@owner_only
+@app.on_message(filters.command("show"))
 async def show_rc(client, message):
+    if not await is_owner(message):
+        return
     if not saved_rc:
         await message.reply("📭 **No saved RC!**")
         return
@@ -322,9 +302,10 @@ async def show_rc(client, message):
         text += f"{i}. `{name}` → {url[:40]}...\n"
     await message.reply(text)
 
-@app.on_message(filters.command("delrc") & filters.private)
-@owner_only
+@app.on_message(filters.command("delrc"))
 async def del_rc(client, message):
+    if not await is_owner(message):
+        return
     try:
         args = message.text.split()
         if len(args) < 2:
@@ -342,25 +323,35 @@ async def del_rc(client, message):
     except Exception as e:
         await message.reply(f"❌ **Error:** `{str(e)}`")
 
-# ==================== ERROR HANDLER ====================
-@app.on_message(filters.private)
-@owner_only
+# ==================== UNKNOWN COMMAND HANDLER ====================
+@app.on_message(filters.command([]))
 async def unknown_cmd(client, message):
     if message.text and message.text.startswith('.'):
-        await message.reply("❌ **Unknown command!** `.start` dekh commands ke liye 😡")
+        if message.from_user.id == OWNER_ID:
+            await message.reply("❌ **Unknown command!** Use `.start` to see all commands 😡")
+
+# ==================== DEBUG LOG ====================
+@app.on_message(filters.text & filters.private)
+async def debug_log(client, message):
+    if message.text and message.text.startswith('.'):
+        print(f"📩 Command received: {message.text} from {message.from_user.id}")
+        if message.from_user.id != OWNER_ID:
+            await message.reply(f"❌ Owner ID mismatch!\nYour ID: `{message.from_user.id}`\nOwner ID: `{OWNER_ID}`")
 
 # ==================== RUN ====================
 async def main():
     print("🔥 OGGY-VC-USERBOT STARTING...")
     print("😈 CHUMT KA PYASA ACTIVATED!")
-    print("👑 Owner ID:", OWNER_ID)
-    print("📱 BINA PYTGCALLS - PURE FFMPEG!")
+    print(f"👑 Owner ID: {OWNER_ID}")
+    print("📱 Commands work in BOTH Group and Private!")
     
     await app.start()
     me = await app.get_me()
     print(f"✅ Logged in as: {me.first_name} (@{me.username})")
-    print("\n🎵 Bot is running! Use commands in Telegram PM.")
-    print("Commands: .start, .joinvc, .play, .skip, .stop, .pause, .resume, .queue, .addrc, .show, .delrc")
+    print(f"📱 Bot User ID: {me.id}")
+    print("\n🎵 Bot is running! Send commands in Telegram.")
+    print("Commands: .start, .joinvc, .play, .skip, .stop, .queue, .addrc, .show, .delrc")
+    print("\n⚠️ If command doesn't work, check terminal for errors!")
     
     await asyncio.Event().wait()
 
