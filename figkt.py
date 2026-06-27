@@ -1,27 +1,25 @@
-# OGGY-VC-USERBOT - FIXED EVENT LOOP ISSUE 😈🔥
-# CHUMT KA PYASA - COMPLETE FIX
+# OGGY-VC-USERBOT - PYTHON 3.9 COMPATIBLE 😈🔥
+# CHUMT KA PYASA - WORKING VERSION
 
 import asyncio
 import sys
+import os
+import json
+from datetime import datetime
 
 # ============ EVENT LOOP FIX ============
 if sys.version_info >= (3, 10):
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-else:
     try:
         import uvloop
         uvloop.install()
     except:
         pass
 
-import os
-import json
-from datetime import datetime
 from pyrogram import Client, filters
 from pyrogram.types import Message
-from pyrogram.enums import ChatType, ChatMemberStatus
+from pyrogram.enums import ChatType
 from pytgcalls import PyTgCalls
-from pytgcalls.types import AudioQuality, Stream
+from pytgcalls.types import AudioQuality
 from pytgcalls.types.input_stream import AudioPiped
 import yt_dlp
 from youtubesearchpython import VideosSearch
@@ -82,7 +80,6 @@ async def get_stream_url(url):
         return None
 
 async def play_next(chat_id):
-    """Queue se next song play karo"""
     global queue, current_playing
     
     if not queue:
@@ -139,13 +136,6 @@ async def join_vc(client, message):
             return
         
         chat_id = int(args[1]) if args[1].isdigit() else args[1]
-        
-        # Check if chat exists
-        try:
-            chat = await client.get_chat(chat_id)
-        except:
-            await message.edit("❌ Chat not found! Check ID 😡")
-            return
         
         await call.join_group_call(
             chat_id,
@@ -318,31 +308,18 @@ async def del_rc(client, message):
 
 # ==================== RUN ====================
 async def main():
-    """Main async function"""
     print("🔥 OGGY-VC-USERBOT STARTING...")
     print("😈 CHUMT KA PYASA ACTIVATED!")
     
-    # Start PyTgCalls
     await call.start()
-    
-    # Start Pyrogram
     await app.start()
     
     print("✅ Bot is running! Use commands in Telegram.")
-    
-    # Keep bot running
     await asyncio.Event().wait()
 
 if __name__ == "__main__":
     try:
-        # Get or create event loop
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        
-        # Run main
+        loop = asyncio.get_event_loop()
         loop.run_until_complete(main())
     except KeyboardInterrupt:
         print("\n❌ Bot stopped!")
