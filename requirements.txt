@@ -1,0 +1,28 @@
+# ============ CORE LIBRARIES ============
+pyrogram==2.0.106
+pytgcalls==3.0.0
+yt-dlp==2023.10.13
+youtube-search-python==1.6.6
+
+# ============ EVENT LOOP & ASYNC ============
+uvloop==0.19.0
+asyncio==3.4.3
+
+# ============ AUDIO PROCESSING ============
+pyaudio==0.2.11
+mutagen==1.47.0
+
+# ============ SYSTEM DEPENDENCIES ============
+# Python-apt (system package, pip se install mat karo)
+# FFmpeg (system package - sudo apt install ffmpeg)
+
+# ============ EXTRA SECURITY ============
+cryptography==41.0.4
+PySocks==1.7.1  # Proxy support
+
+# ============ JSON HANDLING ============
+# Built-in hai, kuch nahi chahiye
+
+# ============ OPTIONAL (PERFORMANCE) ============
+# aiohttp==3.8.5  # Fast HTTP requests
+# speedtest-cli==2.1.3  # Network speed check
